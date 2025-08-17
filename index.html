@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GA4の限界を突破する BigQueryマーケティング分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ヒーローセクション */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            animation: slideInUp 1s ease-out;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            animation: slideInUp 1s ease-out 0.2s both;
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            opacity: 0.8;
+            animation: slideInUp 1s ease-out 0.4s both;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: white;
+            padding: 18px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+            animation: slideInUp 1s ease-out 0.6s both;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.6);
+        }
+
+        /* 問題提起セクション */
+        .problem-section {
+            background: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            border-radius: 2px;
+        }
+
+        .problems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .problem-card {
+            background: #f8f9fa;
+            padding: 40px 30px;
+            border-radius: 20px;
+            border-left: 5px solid #dc3545;
+            transition: transform 0.3s ease;
+        }
+
+        .problem-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .problem-icon {
+            font-size: 3rem;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        .problem-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .problem-description {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        /* ソリューションセクション */
+        .solution-section {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .solution-section .section-title {
+            color: white;
+        }
+
+        .solution-section .section-title::after {
+            background: white;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .benefit-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .benefit-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .benefit-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .benefit-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .benefit-description {
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        .benefit-feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin: 10px 5px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        /* 比較セクション */
+        .comparison-section {
+            background: white;
+            padding: 80px 0;
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-top: 40px;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 20px 25px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .comparison-table tr:nth-child(even) td {
+            background: #f8f9fa;
+        }
+
+        .feature-name {
+            font-weight: 600;
+            color: #333;
+            text-align: left;
+        }
+
+        .check-mark {
+            color: #28a745;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .x-mark {
+            color: #dc3545;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .limited {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        /* 実績セクション */
+        .results-section {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 600;
+        }
+
+        /* CTAセクション */
+        .final-cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .cta-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+
+        .cta-description {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .contact-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            margin-top: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-group textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .submit-button {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: white;
+            padding: 18px 50px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+            width: 100%;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.6);
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 0 15px;
+            }
+            
+            .comparison-table {
+                font-size: 0.9rem;
+            }
+            
+            .comparison-table th,
+            .comparison-table td {
+                padding: 15px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ヒーローセクション -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>GA4の限界を突破する<br>BigQueryマーケティング分析</h1>
+                <p class="hero-subtitle">データドリブンマーケティングの新次元へ</p>
+                <p class="hero-description">
+                    GA4の標準レポートでは見えない深いインサイトを発見し、競合他社を圧倒するマーケティング戦略を構築しませんか？BigQueryなら、あなたのマーケティングデータの真の価値を引き出せます。
+                </p>
+                <a href="#contact" class="cta-button">無料相談を申し込む</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 問題提起セクション -->
+    <section class="problem-section">
+        <div class="container">
+            <h2 class="section-title">GA4だけでは限界がある理由</h2>
+            
+            <div class="problems-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">⚠️</div>
+                    <h3 class="problem-title">サンプリングによる不正確性</h3>
+                    <p class="problem-description">
+                        大量のトラフィックがあるサイトでは、GA4がデータをサンプリングして表示するため、正確な分析ができません。重要な意思決定を不正確なデータで行うリスクがあります。
+                    </p>
+                </div>
+                
+                <div class="problem-card">
+                    <div class="problem-icon">📊</div>
+                    <h3 class="problem-title">限定的なレポート機能</h3>
+                    <p class="problem-description">
+                        GA4の標準レポートは汎用的で、あなたのビジネス特有の分析ニーズに応えられません。カスタムディメンションも制限があり、深い分析ができません。
+                    </p>
+                </div>
+                
+                <div class="problem-card">
+                    <div class="problem-icon">🔒</div>
+                    <h3 class="problem-title">データ保持期間の制約</h3>
+                    <p class="problem-description">
+                        GA4は最大14ヶ月（有料版でも26ヶ月）のデータしか保持できません。長期的なトレンド分析や年次比較ができず、戦略的な意思決定に支障をきたします。
+                    </p>
+                </div>
+                
+                <div class="problem-card">
+                    <div class="problem-icon">🚫</div>
+                    <h3 class="problem-title">他システムとの連携困難</h3>
+                    <p class="problem-description">
+                        CRMやMA、広告データとの統合分析が困難で、顧客の全体像を把握できません。チャネル横断的なROI分析やLTV予測ができません。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ソリューションセクション -->
+    <section class="solution-section">
+        <div class="container">
+            <h2 class="section-title">BigQueryで実現する次世代分析</h2>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">🎯</div>
+                    <h3 class="benefit-title">完全なローデータ分析</h3>
+                    <p class="benefit-description">
+                        サンプリングなしの完全なデータで正確な分析が可能。GA4では見えない細かなユーザー行動パターンまで分析できます。
+                    </p>
+                    <div class="benefit-feature">生データアクセス</div>
+                    <div class="benefit-feature">無制限分析</div>
+                    <div class="benefit-feature">高精度レポート</div>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔧</div>
+                    <h3 class="benefit-title">カスタム分析の自由度</h3>
+                    <p class="benefit-description">
+                        SQLを使って、あなたのビジネスに特化したKPIやセグメント分析が可能。複雑な条件での絞り込みも自在です。
+                    </p>
+                    <div class="benefit-feature">SQL分析</div>
+                    <div class="benefit-feature">カスタムKPI</div>
+                    <div class="benefit-feature">柔軟なセグメント</div>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-icon">💾</div>
+                    <h3 class="benefit-title">無制限データ保持</h3>
+                    <p class="benefit-description">
+                        データを永続的に保存し、長期トレンド分析や季節性分析が可能。過去データとの比較で戦略的インサイトを獲得できます。
+                    </p>
+                    <div class="benefit-feature">永続保存</div>
+                    <div class="benefit-feature">長期トレンド</div>
+                    <div class="benefit-feature">年次比較</div>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔗</div>
+                    <h3 class="benefit-title">統合データ分析</h3>
+                    <p class="benefit-description">
+                        CRM、広告、売上データなどを統合し、顧客の全ライフサイクルを分析。真のROIとLTVを算出できます。
+                    </p>
+                    <div class="benefit-feature">データ統合</div>
+                    <div class="benefit-feature">LTV分析</div>
+                    <div class="benefit-feature">ROI最適化</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 比較セクション -->
+    <section class="comparison-section">
+        <div class="container">
+            <h2 class="section-title">GA4 vs BigQuery 機能比較</h2>
+            
+            <div class="comparison-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>機能</th>
+                            <th>GA4標準</th>
+                            <th>BigQuery</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="feature-name">データサンプリング</td>
+                            <td><span class="x-mark">有り</span></td>
+                            <td><span class="check-mark">無し</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">データ保持期間</td>
+                            <td><span class="limited">最大26ヶ月</span></td>
+                            <td><span class="check-mark">無制限</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">カスタム分析</td>
+                            <td><span class="limited">制限あり</span></td>
+                            <td><span class="check-mark">完全自由</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">外部データ統合</td>
+                            <td><span class="x-mark">困難</span></td>
+                            <td><span class="check-mark">簡単</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">リアルタイム分析</td>
+                            <td><span class="limited">基本的</span></td>
+                            <td><span class="check-mark">高度</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">機械学習適用</td>
+                            <td><span class="x-mark">不可</span></td>
+                            <td><span class="check-mark">可能</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">コホート分析</td>
+                            <td><span class="limited">基本的</span></td>
+                            <td><span class="check-mark">詳細</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">アトリビューション分析</td>
+                            <td><span class="limited">制限あり</span></td>
+                            <td><span class="check-mark">カスタム可能</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 実績セクション -->
+    <section class="results-section">
+        <div class="container">
+            <h2 class="section-title">BigQuery導入で得られる成果</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">300%</div>
+                    <div class="stat-label">分析精度の向上</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number">80%</div>
+                    <div class="stat-label">意思決定スピード向上</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number">150%</div>
+                    <div class="stat-label">ROI改善効果</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">データ保持期間</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 最終CTA -->
+    <section class="final-cta" id="contact">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">今すぐマーケティング分析を次のレベルへ</h2>
+                <p class="cta-description">
+                    BigQueryを活用したマーケティング分析の可能性を、無料相談でご体験ください。あなたのデータから新たなインサイトを発見し、競合優位性を構築するお手伝いをいたします。
+                </p>
+                
+                <div class="contact-form">
+                    <form>
+                        <div class="form-group">
+                            <label for="company">会社名 *</label>
+                            <input type="text" id="company" name="company" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="name">お名前 *</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">メールアドレス *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">電話番号</label>
+                            <input type="tel" id="phone" name="phone">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">ご相談内容</label>
+                            <textarea id="message" name="message" placeholder="現在のGA4での課題やBigQueryで実現したい分析についてお聞かせください"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="submit-button">無料相談を申し込む</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // スムーススクロール
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // フォーム送信処理
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 簡単なバリデーション
+            const requiredFields = this.querySelectorAll('input[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.style.borderColor = '#dc3545';
+                } else {
+                    field.style.borderColor = '';
+                }
+            });
+            
+            if (isValid) {
+                // 実際の送信処理はここに実装
+                alert('お問い合わせありがとうございます！担当者より24時間以内にご連絡いたします。');
+                this.reset();
+            } else {
+                alert('必須項目をすべて入力してください。');
+            }
+        });
+
+        // スクロールアニメーション
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // アニメーション対象要素を観察
+        document.querySelectorAll('.problem-card, .benefit-card, .stat-card').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
