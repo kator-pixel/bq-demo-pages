@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GA4の限界を突破する BigQueryマーケティング分析</title>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-MFC8ZDSX');</script>
+    <!-- End Google Tag Manager -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            line-height: 1.6;
+            color: #fff;
+            background: #000;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(45deg, #000, #111, #000, #222);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Particle Effect */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float-particle 20s infinite linear;
+        }
+
+        @keyframes float-particle {
+            from {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Hero Section with Glitch Effect */
+        .hero {
+            background: #000;
+            color: white;
+            padding: 120px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.03) 2px,
+                rgba(255, 255, 255, 0.03) 4px
+            );
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(50%); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+            position: relative;
+            display: inline-block;
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% {
+                text-shadow: 
+                    2px 0 rgba(255, 255, 255, 0.3),
+                    -2px 0 rgba(255, 255, 255, 0.3);
+            }
+            25% {
+                text-shadow: 
+                    -2px 0 rgba(255, 255, 255, 0.3),
+                    2px 0 rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                text-shadow: 
+                    2px 0 rgba(255, 255, 255, 0.3),
+                    -2px 0 rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        .hero h1::before,
+        .hero h1::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hero h1::before {
+            animation: glitch-1 0.5s infinite;
+            color: rgba(255, 255, 255, 0.8);
+            z-index: -1;
+        }
+
+        .hero h1::after {
+            animation: glitch-2 0.5s infinite;
+            color: rgba(255, 255, 255, 0.8);
+            z-index: -2;
+        }
+
+        @keyframes glitch-1 {
+            0%, 100% {
+                clip: rect(0, 900px, 0, 0);
+                transform: translate(0);
+            }
+            20% {
+                clip: rect(20px, 900px, 60px, 0);
+                transform: translate(-2px, 2px);
+            }
+            40% {
+                clip: rect(40px, 900px, 80px, 0);
+                transform: translate(2px, -2px);
+            }
+            60% {
+                clip: rect(60px, 900px, 100px, 0);
+                transform: translate(0, 2px);
+            }
+            80% {
+                clip: rect(80px, 900px, 120px, 0);
+                transform: translate(2px, 0);
+            }
+        }
+
+        @keyframes glitch-2 {
+            0%, 100% {
+                clip: rect(0, 900px, 0, 0);
+                transform: translate(0);
+            }
+            20% {
+                clip: rect(20px, 900px, 60px, 0);
+                transform: translate(2px, 0);
+            }
+            40% {
+                clip: rect(40px, 900px, 80px, 0);
+                transform: translate(-2px, 0);
+            }
+            60% {
+                clip: rect(60px, 900px, 100px, 0);
+                transform: translate(0, -2px);
+            }
+            80% {
+                clip: rect(80px, 900px, 120px, 0);
+                transform: translate(-2px, 2px);
+            }
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.5s;
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.7s;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+        }
+
+        .cta-button {
+            background: #fff;
+            color: #000;
+            padding: 18px 40px;
+            border: 2px solid #fff;
+            border-radius: 0;
+            font-size: 1.2rem;
+            font-weight: 900;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.9s;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .cta-button:hover {
+            color: #fff;
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+
+        .cta-button:hover::before {
+            left: 0;
+        }
+
+        /* Problem Section */
+        .problem-section {
+            background: #111;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 60px;
+            position: relative;
+            font-weight: 900;
+            letter-spacing: -1px;
+            animation: typewriter 2s steps(20) forwards;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 3px solid #fff;
+        }
+
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .problems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .problem-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 40px 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .problem-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+
+        .problem-card:hover {
+            transform: translateY(-10px) rotateX(5deg);
+            box-shadow: 0 20px 40px rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .problem-card:hover::before {
+            opacity: 1;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: rotate(45deg) scale(1); }
+            50% { transform: rotate(45deg) scale(1.1); }
+        }
+
+        .problem-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            filter: grayscale(100%) brightness(1.5);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .problem-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .problem-description {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.8;
+        }
+
+        /* Solution Section */
+        .solution-section {
+            background: #000;
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .solution-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.03) 2px,
+                    rgba(255, 255, 255, 0.03) 4px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.03) 2px,
+                    rgba(255, 255, 255, 0.03) 4px
+                );
+            animation: grid-move 10s linear infinite;
+        }
+
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(4px, 4px); }
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .benefit-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            padding: 40px 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .benefit-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .benefit-card:hover {
+            transform: translateY(-15px) rotateX(10deg) rotateY(-10deg);
+            box-shadow: 
+                0 30px 60px rgba(255, 255, 255, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .benefit-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .benefit-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            filter: grayscale(100%) brightness(2);
+            animation: rotate 4s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .benefit-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .benefit-description {
+            line-height: 1.8;
+            opacity: 0.8;
+        }
+
+        .benefit-feature {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            margin: 10px 5px;
+            display: inline-block;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .benefit-feature:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Comparison Section */
+        .comparison-section {
+            background: #111;
+            padding: 100px 0;
+            position: relative;
+        }
+
+        .comparison-table {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            margin-top: 40px;
+            animation: slideIn 1s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            background: #000;
+            color: white;
+            padding: 25px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .comparison-table td {
+            padding: 20px 25px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+            color: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .comparison-table tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .comparison-table tr:nth-child(even) td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .feature-name {
+            font-weight: 700;
+            color: #fff;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .check-mark {
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(255, 255, 255, 0.8); }
+        }
+
+        .x-mark {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .limited {
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+
+        /* Results Section */
+        .results-section {
+            background: #000;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .results-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            animation: rotate-bg 20s linear infinite;
+            transform-origin: center;
+        }
+
+        @keyframes rotate-bg {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 40px 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+            transition: all 0.5s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .stat-card:hover {
+            transform: scale(1.1) rotateY(10deg);
+            box-shadow: 0 20px 40px rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-card:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .stat-number {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 10px;
+            animation: counter 2s ease-out forwards;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes counter {
+            from {
+                opacity: 0;
+                transform: scale(0);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Final CTA */
+        .final-cta {
+            background: #111;
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cta-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cta-title {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        .cta-description {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            opacity: 0.8;
+        }
+
+        .contact-form {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: formSlide 1s ease forwards;
+        }
+
+        @keyframes formSlide {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .submit-button {
+            background: #fff;
+            color: #000;
+            padding: 18px 50px;
+            border: 2px solid #fff;
+            font-size: 1.2rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .submit-button:hover {
+            color: #fff;
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+
+        .submit-button:hover::before {
+            left: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+                white-space: normal;
+                animation: none;
+                border-right: none;
+            }
+            
+            .container {
+                padding: 0 15px;
+            }
+            
+            .comparison-table {
+                font-size: 0.9rem;
+            }
+            
+            .comparison-table th,
+            .comparison-table td {
+                padding: 15px 10px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeOut 1s ease 2s forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
+
+        .loading-text {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: loadingPulse 1s ease infinite;
+        }
+
+        @keyframes loadingPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MFC8ZDSX"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading-text">LOADING</div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    
+    <!-- Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 data-text="GA4の限界を突破する">GA4の限界を突破する<br>BigQueryマーケティング分析</h1>
+                <p class="hero-subtitle">データドリブンマーケティングの新次元へ</p>
+                <p class="hero-description">
+                    GA4の標準レポートでは見えない深いインサイトを発見し、競合他社を圧倒するマーケティング戦略を構築しませんか？BigQueryなら、あなたのマーケティングデータの真の価値を引き出せます。
+                </p>
+                <a href="#contact" class="cta-button">無料相談を申し込む</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem-section">
+        <div class="container">
+            <h2 class="section-title">GA4だけでは限界がある理由</h2>
+            
+            <div class="problems-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">⚠️</div>
+                    <h3 class="problem-title">サンプリングによる不正確性</h3>
+                    <p class="problem-description">
+                        大量のトラフィックがあるサイトでは、GA4がデータをサンプリングして表示するため、正確な分析ができません。重要な意思決定を不正確なデータで行うリスクがあります。
+                    </p>
+                </div>
+                
+                <div class="problem-card">
+                    <div class="problem-icon">📊</div>
+                    <h3 class="problem-title">限定的なレポート機能</h3>
+                    <p class="problem-description">
+                        GA4の標準レポートは汎用的で、あなたのビジネス特有の分析ニーズに応えられません。カスタムディメンションも制限があり、深い分析ができません。
+                    </p>
+                </div>
+                
+                <div class="problem-card">
+                    <div class="problem-icon">🔒</div>
+                    <h3 class="problem-title">データ保持期間の制約</h3>
+                    <p class="problem-description">
+                        GA4は最大14ヶ月（有料版でも26ヶ月）のデータしか保持できません。長期的なトレンド分析や年次比較ができず、戦略的な意思決定に支障をきたします。
+                    </p>
+                </div>
+                
+                <div class="problem-card">
+                    <div class="problem-icon">🚫</div>
+                    <h3 class="problem-title">他システムとの連携困難</h3>
+                    <p class="problem-description">
+                        CRMやMA、広告データとの統合分析が困難で、顧客の全体像を把握できません。チャネル横断的なROI分析やLTV予測ができません。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section class="solution-section">
+        <div class="container">
+            <h2 class="section-title">BigQueryで実現する次世代分析</h2>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">🎯</div>
+                    <h3 class="benefit-title">完全なローデータ分析</h3>
+                    <p class="benefit-description">
+                        サンプリングなしの完全なデータで正確な分析が可能。GA4では見えない細かなユーザー行動パターンまで分析できます。
+                    </p>
+                    <div class="benefit-feature">生データアクセス</div>
+                    <div class="benefit-feature">無制限分析</div>
+                    <div class="benefit-feature">高精度レポート</div>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔧</div>
+                    <h3 class="benefit-title">カスタム分析の自由度</h3>
+                    <p class="benefit-description">
+                        SQLを使って、あなたのビジネスに特化したKPIやセグメント分析が可能。複雑な条件での絞り込みも自在です。
+                    </p>
+                    <div class="benefit-feature">SQL分析</div>
+                    <div class="benefit-feature">カスタムKPI</div>
+                    <div class="benefit-feature">柔軟なセグメント</div>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-icon">💾</div>
+                    <h3 class="benefit-title">無制限データ保持</h3>
+                    <p class="benefit-description">
+                        データを永続的に保存し、長期トレンド分析や季節性分析が可能。過去データとの比較で戦略的インサイトを獲得できます。
+                    </p>
+                    <div class="benefit-feature">永続保存</div>
+                    <div class="benefit-feature">長期トレンド</div>
+                    <div class="benefit-feature">年次比較</div>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔗</div>
+                    <h3 class="benefit-title">統合データ分析</h3>
+                    <p class="benefit-description">
+                        CRM、広告、売上データなどを統合し、顧客の全ライフサイクルを分析。真のROIとLTVを算出できます。
+                    </p>
+                    <div class="benefit-feature">データ統合</div>
+                    <div class="benefit-feature">LTV分析</div>
+                    <div class="benefit-feature">ROI最適化</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison-section">
+        <div class="container">
+            <h2 class="section-title">GA4 vs BigQuery 機能比較</h2>
+            
+            <div class="comparison-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>機能</th>
+                            <th>GA4標準</th>
+                            <th>BigQuery</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="feature-name">データサンプリング</td>
+                            <td><span class="x-mark">有り</span></td>
+                            <td><span class="check-mark">無し</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">データ保持期間</td>
+                            <td><span class="limited">最大26ヶ月</span></td>
+                            <td><span class="check-mark">無制限</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">カスタム分析</td>
+                            <td><span class="limited">制限あり</span></td>
+                            <td><span class="check-mark">完全自由</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">外部データ統合</td>
+                            <td><span class="x-mark">困難</span></td>
+                            <td><span class="check-mark">簡単</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">リアルタイム分析</td>
+                            <td><span class="limited">基本的</span></td>
+                            <td><span class="check-mark">高度</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">機械学習適用</td>
+                            <td><span class="x-mark">不可</span></td>
+                            <td><span class="check-mark">可能</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">コホート分析</td>
+                            <td><span class="limited">基本的</span></td>
+                            <td><span class="check-mark">詳細</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">アトリビューション分析</td>
+                            <td><span class="limited">制限あり</span></td>
+                            <td><span class="check-mark">カスタム可能</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section">
+        <div class="container">
+            <h2 class="section-title">BigQuery導入で得られる成果</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">300%</div>
+                    <div class="stat-label">分析精度の向上</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number">80%</div>
+                    <div class="stat-label">意思決定スピード向上</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number">150%</div>
+                    <div class="stat-label">ROI改善効果</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">データ保持期間</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final-cta" id="contact">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">今すぐマーケティング分析を次のレベルへ</h2>
+                <p class="cta-description">
+                    BigQueryを活用したマーケティング分析の可能性を、無料相談でご体験ください。あなたのデータから新たなインサイトを発見し、競合優位性を構築するお手伝いをいたします。
+                </p>
+                
+                <div class="contact-form">
+                    <form>
+                        <div class="form-group">
+                            <label for="company">会社名 *</label>
+                            <input type="text" id="company" name="company" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="name">お名前 *</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">メールアドレス *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">電話番号</label>
+                            <input type="tel" id="phone" name="phone">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">ご相談内容</label>
+                            <textarea id="message" name="message" placeholder="現在のGA4での課題やBigQueryで実現したい分析についてお聞かせください"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="submit-button">無料相談を申し込む</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Create particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        createParticles();
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const requiredFields = this.querySelectorAll('input[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                } else {
+                    field.style.borderColor = '';
+                }
+            });
+            
+            if (isValid) {
+                alert('お問い合わせありがとうございます！担当者より24時間以内にご連絡いたします。');
+                this.reset();
+            } else {
+                alert('必須項目をすべて入力してください。');
+            }
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0) scale(1)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe cards
+        document.querySelectorAll('.problem-card, .benefit-card, .stat-card').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(50px) scale(0.9)';
+            el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+            observer.observe(el);
+        });
+
+        // Dynamic number animation
+        function animateNumbers() {
+            const numbers = document.querySelectorAll('.stat-number');
+            numbers.forEach(num => {
+                const text = num.textContent;
+                if (text !== '∞') {
+                    const value = parseInt(text);
+                    let current = 0;
+                    const increment = value / 50;
+                    const timer = setInterval(() => {
+                        current += increment;
+                        if (current >= value) {
+                            current = value;
+                            clearInterval(timer);
+                        }
+                        num.textContent = Math.floor(current) + '%';
+                    }, 30);
+                }
+            });
+        }
+
+        // Trigger number animation when stats section is visible
+        const statsSection = document.querySelector('.results-section');
+        const statsObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                animateNumbers();
+                statsObserver.disconnect();
+            }
+        }, { threshold: 0.5 });
+        
+        statsObserver.observe(statsSection);
+
+        // Parallax effect on scroll
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelector('.animated-bg');
+            parallax.style.transform = `translateY(${scrolled * 0.5}px)`;
+        });
+    </script>
+</body>
+</html>
